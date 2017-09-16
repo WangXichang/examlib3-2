@@ -40,32 +40,6 @@ def create_normaltable(size=400, std=1, mean=0, stdnum=4):
     return ndf
 
 
-def read_normaltable(readrows=10000):
-    """
-    :function
-    read normal distributed N(0,1) data from a high pricise data 100w samples in [-6, 6]
-    used to make low precise data that is suitable to some applications
-    :parameter
-        readrows: rows to read from 100w samples with -6 and 6
-    :return
-        dataframe['No','sv','pdf','cdf']
-    """
-    if type(readrows) == int:
-        skipv = int(1000000/readrows)
-        skiprowlist = [x if x % skipv != 0 else -1 for x in range(1000000)]
-        skiprowlist = list(set(skiprowlist))
-        if -1 in skiprowlist:
-            skiprowlist.remove(-1)
-        if 1 in skiprowlist:
-            skiprowlist.remove(1)
-    else:
-        skiprowlist = []
-    nt = pd.read_csv('normaldist100w.csv',
-                     dtype={'sv': np.float32, 'cdf': np.float64, 'pdf': np.float64},
-                     skiprows=skiprowlist)
-    return nt
-
-
 # use scipy.stats descibe report dataframe info
 def report_stats_describe(dataframe, decnum=4):
     """
