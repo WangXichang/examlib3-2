@@ -1,7 +1,8 @@
 # -*- utf-8 -*-
-# version 2017-09-11
+# version 2017-09-16
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib as mp
 import pandas as pd
 import numpy as np
 import math
@@ -84,6 +85,7 @@ def report_stats_describe(dataframe, decnum=4):
         skewness
         kurtosis
     """
+
     def toround(listvalue, rdecnum):
         return '  '.join([f'%(v).{rdecnum}f' % {'v': round(x, rdecnum)} for x in listvalue])
     # for key, value in stats.describe(dataframe)._asdict().items():
@@ -101,8 +103,18 @@ def report_stats_describe(dataframe, decnum=4):
             'kurtosis': sd.kurtosis}
     return dict
 
+
+# test SegTable
+def test_segtable():
+    seg = SegTable()
+    seg.set_data(exp_scoredf_normal(), ['sf'])
+    seg.set_parameters(segstep=3)
+    seg.run()
+    return seg
+
+
 # segment table for score dataframe
-# version 0915-2017
+# version 0916-2017
 class SegTable(object):
     """
     :raw data 
@@ -141,13 +153,13 @@ class SegTable(object):
     def segdf(self):
         return self.__segDf
 
-    @segdf.setter
-    def segdf(self, df):
-        self.__segDf = df
-
     @property
     def rawdf(self):
         return self.__rawDf
+
+    @rawdf.setter
+    def rawdf(self, df):
+        self.__rawDf = df
 
     @property
     def segfields(self):
@@ -203,7 +215,7 @@ class SegTable(object):
             return
         # create output dataframe with segstep = 1
         seglist = [x for x in range(self.__segMin, self.__segMax + 1)]
-        self.segdf = pd.DataFrame({'seg': seglist})
+        self.__segDf = pd.DataFrame({'seg': seglist})
         if not self.segfields:
             self.segfields = self.rawdf.columns.values
         for f in self.segfields:
@@ -211,23 +223,26 @@ class SegTable(object):
             self.segdf[f + '_count'] = self.segdf['seg'].\
                 apply(lambda x: np.int64(r[x]) if x in r.index else 0)
             if self.__segSort != 'ascending':
-                self.segdf = self.segdf.sort_values(by='seg', ascending=False)
+                self.__segDf = self.segdf.sort_values(by='seg', ascending=False)
             self.segdf[f + '_cumsum'] = self.__segDf[f + '_count'].cumsum()
             maxsum = max(max(self.segdf[f + '_cumsum']), 1)
-            self.segdf[f + '_percent'] = self.segdf[f + '_cumsum'].apply(lambda x: x / maxsum)
+            self.__segDf[f + '_percent'] = self.__segDf[f + '_cumsum'].apply(lambda x: x / maxsum)
             if self.__segStep > 1:
                 segcountname = f+'_count{0}'.format(self.__segStep)
-                self.segdf[segcountname] = np.int64(-1)
+                self.__segDf[segcountname] = np.int64(-1)
                 c = 0
                 curpoint, curstep = ((self.__segMin, self.__segStep)
                                      if self.__segSort == 'ascending' else
                                      (self.__segMax, -self.__segStep))
-                for index, row in self.segdf.iterrows():
+                for index, row in self.__segDf.iterrows():
                     c += row[f+'_count']
                     if np.int64(row['seg']) in [curpoint, self.__segMax, self.__segMin]:
                         # row[segcountname] = c
-                        self.segdf.loc[index, segcountname] = c
+                        self.__segDf.loc[index, segcountname] = c
                         c = 0
                         curpoint += curstep
         return
+
+    def plot(self):
+        pass
 # SegTable class end
