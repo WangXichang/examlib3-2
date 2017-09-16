@@ -10,10 +10,17 @@ import math
 from scipy import stats
 
 
-# create a score dataframe with fields 'sf', used to test some application
-def exp_scoredf_normal(mean=70, std=10, maxscore=100, minscore=0, samples=100000):
+def exp_scoredf_normal(mean=70, std=10, maxscore=100, minscore=0, size=100000):
+    """
+    生成具有正态分布的分数数据，类型为 pandas.DataFrame, 列名为 sf
+    create a score dataframe with fields 'sf', used to test some application
+    :parameter
+        mean: 均值， std:标准差， maxscore:最大分值， minscore:最小分值， size:人数（样本数）
+    :return
+        DataFrame, columns = {'sf'}
+    """
     df = pd.DataFrame({'sf': [max(minscore, min(int(np.random.randn(1)*std + mean), maxscore))
-                       for x in range(samples)]})
+                              for x in range(size)]})
     return df
 
 
@@ -21,6 +28,7 @@ def exp_scoredf_normal(mean=70, std=10, maxscore=100, minscore=0, samples=100000
 def create_normaltable(size=400, std=1, mean=0, stdnum=4):
     """
     function
+        生成正态分布量表
         create normal distributed data(pdf,cdf) with preset std,mean,samples size
         at interval: [-stdNum * std, std * stdNum]
     parameter
@@ -41,8 +49,9 @@ def create_normaltable(size=400, std=1, mean=0, stdnum=4):
 
 
 # use scipy.stats descibe report dataframe info
-def report_stats_describe(dataframe, decnum=4):
+def report_stats_describe(dataframe, decdigits=4):
     """
+    report statistic describe of a dataframe, with decimal digits = decnum
     峰度（Kurtosis）与偏态（Skewness）就是量测数据正态分布特性的两个指标。
     峰度衡量数据分布的平坦度（flatness）。尾部大的数据分布峰度值较大。正态分布的峰度值为3。
         Kurtosis = 1/N * Sigma(Xi-Xbar)**4 / (1/N * Sigma(Xi-Xbar)**2)**2
@@ -60,18 +69,20 @@ def report_stats_describe(dataframe, decnum=4):
         kurtosis
     """
 
-    def toround(listvalue, rdecnum):
-        return '  '.join([f'%(v).{rdecnum}f' % {'v': round(x, rdecnum)} for x in listvalue])
+    def toround(listvalue, getdecdigits):
+        return '  '.join([f'%(v).{getdecdigits}f' % {'v': round(x, getdecdigits)} for x in listvalue])
+    def tosqrt(listvalue, getdecdigits):
+        return '  '.join([f'%(v).{getdecdigits}f' % {'v': round(math.sqrt(x), getdecdigits)} for x in listvalue])
     # for key, value in stats.describe(dataframe)._asdict().items():
     #    print(key, ':', value)
     sd = stats.describe(dataframe)
     print('\trecords: ', sd.nobs)
     print('\tmin: ', toround(sd.minmax[0], 0))
     print('\tmax: ', toround(sd.minmax[1], 0))
-    print('\tmean: ', toround(sd.mean, decnum))
-    print('\tvariance: ', toround(sd.variance, decnum))
-    print('\tskewness: ', toround(sd.skewness, decnum))
-    print('\tkurtosis: ', toround(sd.kurtosis, decnum))
+    print('\tmean: ', toround(sd.mean, decdigits))
+    print('\tvariance: ', toround(sd.variance, decdigits), '\n\tstdandard deviation: ', tosqrt(sd.variance, decdigits))
+    print('\tskewness: ', toround(sd.skewness, decdigits))
+    print('\tkurtosis: ', toround(sd.kurtosis, decdigits))
     dict = {'records': sd.nobs, 'max': sd.minmax[1], 'min': sd.minmax[0],
             'mean': sd.mean, 'variance': sd.variance, 'skewness': sd.skewness,
             'kurtosis': sd.kurtosis}
@@ -80,8 +91,21 @@ def report_stats_describe(dataframe, decnum=4):
 
 # test SegTable
 def test_segtable():
+    """
+    a example for test SegTable
+    ------------------------------------------
+    expdf = exp_scoredf_normal()
     seg = SegTable()
-    seg.set_data(exp_scoredf_normal(), ['sf'])
+    seg.set_data(expdf, expdf.columns.values)
+    seg.set_parameters(segstep=3)
+    seg.run()
+    ------------------------------------------
+    :return:
+        seg.segdf
+    """
+    expdf = exp_scoredf_normal()
+    seg = SegTable()
+    seg.set_data(expdf, list(expdf.columns))
     seg.set_parameters(segstep=3)
     seg.run()
     return seg
@@ -91,9 +115,9 @@ def test_segtable():
 # version 0916-2017
 class SegTable(object):
     """
-    :raw data 
-        rawdf: dataframe, with a value field(int,float) to calculate segment table
-           segfields, list, field names to calculate, empty for calculate all fields
+    :data
+        rawdf: dataframe, with a value fields(int,float) to calculate segment table
+        segfields: list, field names to calculate, empty for calculate all fields
     :parameters
         segmax: int,  maxvalue for segment, default=150
         segmin: int, minvalue for segment, default=0
@@ -102,15 +126,16 @@ class SegTable(object):
     :result
         segdf: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
     example:
+        import py2ee_lib
         seg = py2ee_lib.SegTable()
         df = pd.DataFrame({'sf':[i for i in range(1000)]})
         seg.set_data(df, 'sf')
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending')
         seg.run()
-        seg.segdf    #result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+        print(seg.segdf)    #result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
     Note:
-        segmax and segmin can be used to constrain score value scope in [segmin, segmax]
-        score fields type is int
+        segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
+        score fields type is int or float
     """
 
     def __init__(self):
@@ -212,7 +237,7 @@ class SegTable(object):
                     c += row[f+'_count']
                     if np.int64(row['seg']) in [curpoint, self.__segMax, self.__segMin]:
                         # row[segcountname] = c
-                        self.__segDf.loc[index, segcountname] = c
+                        self.__segDf.loc[index, segcountname] = np.int64(c)
                         c = 0
                         curpoint += curstep
         return
