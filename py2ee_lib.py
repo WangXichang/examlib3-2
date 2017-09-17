@@ -251,5 +251,18 @@ class SegTable(object):
         return
 
     def plot(self):
-        
+        for sf in self.segfields:
+            plt.subplot(221)
+            plt.plot(self.segdf.seg, self.segdf[sf+'_count'])
+            plt.xlabel('seg -- count')
+            plt.subplot(222)
+            plt.plot(self.segdf.seg, self.segdf[sf + '_cumsum'])
+            plt.xlabel('seg -- cumsum')
+            plt.subplot(223)
+            plt.plot(self.segdf.seg, self.segdf[sf + '_percent'])
+            plt.xlabel('seg -- percent')
+            plt.subplot(224)
+            plt.hist(self.segdf[sf+'_count'].values, 50)
+            plt.show()
+
 # SegTable class end
