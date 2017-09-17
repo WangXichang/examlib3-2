@@ -111,20 +111,25 @@ def test_segtable():
     return seg
 
 
+# 计算pandas.DataFrame中分数字段的分段人数表
 # segment table for score dataframe
-# version 0916-2017
+# version 0917-2017
 class SegTable(object):
     """
+    设置数据，数据表（类型为pandas.DataFrame）,同时需要设置需要计算分数分段人数的字段（list类型）
     :data
         rawdf: dataframe, with a value fields(int,float) to calculate segment table
         segfields: list, field names to calculate, empty for calculate all fields
+    设置参数
     :parameters
         segmax: int,  maxvalue for segment, default=150
         segmin: int, minvalue for segment, default=0
         segstep: int, levels for segment value, default=1
         segsort: str, 'ascending' or 'descending', default='descending'(sort seg descending)
+    运行结果
     :result
         segdf: dataframe with field 'seg, segfield_count, segfield_cumsum, segfield_percent'
+    应用举例
     example:
         import py2ee_lib
         seg = py2ee_lib.SegTable()
@@ -133,8 +138,11 @@ class SegTable(object):
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending')
         seg.run()
         print(seg.segdf)    #result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+    备注
     Note:
+        在设定的区间范围内计算分数值，抛弃不再范围内的分数项
         segmax and segmin used to constrain score value scope to be processed in [segmin, segmax]
+        分数字段的类型为整数或浮点数（实数）
         score fields type is int or float
     """
 
@@ -243,5 +251,5 @@ class SegTable(object):
         return
 
     def plot(self):
-        pass
+        
 # SegTable class end
