@@ -2,7 +2,7 @@
 # version 2017-09-16
 
 import matplotlib.pyplot as plt
-import matplotlib as mp
+# import matplotlib as mp
 import pandas as pd
 import numpy as np
 import math
@@ -71,8 +71,10 @@ def report_stats_describe(dataframe, decdigits=4):
 
     def toround(listvalue, getdecdigits):
         return '  '.join([f'%(v).{getdecdigits}f' % {'v': round(x, getdecdigits)} for x in listvalue])
+
     def tosqrt(listvalue, getdecdigits):
         return '  '.join([f'%(v).{getdecdigits}f' % {'v': round(math.sqrt(x), getdecdigits)} for x in listvalue])
+
     # for key, value in stats.describe(dataframe)._asdict().items():
     #    print(key, ':', value)
     sd = stats.describe(dataframe)
@@ -108,6 +110,7 @@ def test_segtable():
     seg.set_data(expdf, list(expdf.columns))
     seg.set_parameters(segstep=3)
     seg.run()
+    seg.plot()
     return seg
 
 
@@ -118,8 +121,8 @@ class SegTable(object):
     """
     设置数据，数据表（类型为pandas.DataFrame）,同时需要设置需要计算分数分段人数的字段（list类型）
     :data
-        rawdf: dataframe, with a value fields(int,float) to calculate segment table
-        segfields: list, field names to calculate, empty for calculate all fields
+        rawdf: input dataframe, with a value fields(int,float) to calculate segment table
+        segfields: list, field names used to calculate seg table, empty for calculate all fields
     设置参数
     :parameters
         segmax: int,  maxvalue for segment, default=150
@@ -137,7 +140,8 @@ class SegTable(object):
         seg.set_data(df, 'sf')
         seg.set_parameters(segmax=100, segmin=1, segstep=1, segsort='descending')
         seg.run()
-        print(seg.segdf)    #result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
+        seg.plot()
+        resultdf = seg.segdf    # get result dataframe, with fields: sf, sf_count, sf_cumsum, sf_percent
     备注
     Note:
         在设定的区间范围内计算分数值，抛弃不再范围内的分数项
@@ -176,9 +180,12 @@ class SegTable(object):
     def segfields(self, sfs):
         self.__segFields = sfs
 
-    def set_data(self, df, segfields):
-        self.__rawDf = df
-        self.__segFields = segfields
+    def set_data(self, df, segfields=''):
+        self.rawdf = df
+        if (segfields == '') & type(df) == pd.DataFrame:
+            self.segfields = df.columns.values
+        else:
+            self.segfields = segfields
 
     def set_parameters(self, segmax=100, segmin=0, segstep=1, segsort='descending'):
         self.__segMax = segmax
@@ -254,15 +261,16 @@ class SegTable(object):
         for sf in self.segfields:
             plt.subplot(221)
             plt.plot(self.segdf.seg, self.segdf[sf+'_count'])
-            plt.xlabel('seg -- count')
+            plt.title('seg -- count')
             plt.subplot(222)
             plt.plot(self.segdf.seg, self.segdf[sf + '_cumsum'])
-            plt.xlabel('seg -- cumsum')
+            plt.title('seg -- cumsum')
             plt.subplot(223)
             plt.plot(self.segdf.seg, self.segdf[sf + '_percent'])
-            plt.xlabel('seg -- percent')
+            plt.title('seg -- percent')
             plt.subplot(224)
-            plt.hist(self.segdf[sf+'_count'].values, 50)
+            plt.hist(self.rawdf[sf], 20)
+            plt.title('raw score histogram')
             plt.show()
 
 # SegTable class end
