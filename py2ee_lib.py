@@ -259,6 +259,7 @@ class SegTable(object):
 
     def plot(self):
         for sf in self.segfields:
+            plt.figure('seg table figure')
             plt.subplot(221)
             plt.plot(self.segdf.seg, self.segdf[sf+'_count'])
             plt.title('seg -- count')
